@@ -1,12 +1,16 @@
 /**
- * Mobile.js - Frontend conectado a Flask + MySQL
+ * Mobile.js - Frontend conectado a Flask + SQLite + WhatsApp
  */
 
 let carrito = [];
-let todosLosProductos = []; // Guardamos los productos en memoria para filtrar rápido
+let todosLosProductos = [];
 let filtroActual = 'todos';
 
-// 1. Al cargar la página, pedimos los productos a Python
+// ⚠️ CONFIGURAR NÚMERO DEL DUEÑO (con código de país, sin + ni espacios)
+// Ejemplo Argentina: 549 + código de área sin 0 ni 15 + número
+// Ej: 5492611234567 (Mendoza)
+const TELEFONO_DUEÑO = '543777635035'; // <-- CAMBIÁ ESTE NÚMERO
+
 document.addEventListener('DOMContentLoaded', async () => {
     await cargarProductos();
 });
@@ -86,7 +90,7 @@ function cambiarCantidad(index, delta) {
     const productoReal = todosLosProductos.find(p => p.id === item.id);
 
     if (delta > 0 && item.cantidad >= productoReal.stock) {
-        mostrarToast(`️ Stock máximo alcanzado`, 'error');
+        mostrarToast(`⚠️ Stock máximo alcanzado`, 'error');
         return;
     }
 
@@ -131,14 +135,31 @@ function renderizarCarrito() {
     document.getElementById('total-pedido').innerText = total.toLocaleString('es-AR');
 }
 
-// 2. Enviar el pedido a Python para que lo guarde en MySQL
+// ===== FUNCIÓN NUEVA: Enviar WhatsApp =====
+function enviarWhatsApp() {
+    const productosTexto = carrito.map(item => 
+        `${item.cantidad}x ${item.nombre}`
+    ).join(', ');
+    
+    const total = document.getElementById('total-pedido').innerText;
+    const hora = new Date().toLocaleString('es-AR');
+    
+    const mensaje = `🍔 *NUEVO PEDIDO - EL BUEN SABOR*%0A%0A` +
+                   `📦 *Productos:*%0A${productosTexto}%0A%0A` +
+                   `💰 *Total:* $${total}%0A%0A` +
+                   `⏰ *Hora:* ${hora}`;
+    
+    window.open(`https://wa.me/${TELEFONO_DUEÑO}?text=${mensaje}`, '_blank');
+}
+
+// Confirmar pedido con WhatsApp
 document.getElementById('btn-confirmar').addEventListener('click', async () => {
     if (carrito.length === 0) {
         mostrarToast("⚠️ El pedido está vacío", 'error');
         return;
     }
 
-    const total = document.getElementById('total-pedido').innerText.replace(/\./g, '').replace(',', '.'); // Formato para DB
+    const total = document.getElementById('total-pedido').innerText;
 
     try {
         const respuesta = await fetch('/api/pedidos', {
@@ -150,21 +171,32 @@ document.getElementById('btn-confirmar').addEventListener('click', async () => {
         const resultado = await respuesta.json();
 
         if (resultado.success) {
-            mostrarToast(`✅ Pedido guardado en MySQL`, 'success');
+            mostrarToast(`✅ Pedido confirmado: $${total}`, 'success');
+            
+            // Abrir WhatsApp después de 1 segundo
+            setTimeout(() => {
+                enviarWhatsApp();
+            }, 1000);
+            
             carrito = [];
             renderizarCarrito();
-            await cargarProductos(); // Recargar stock actualizado desde la DB
+            await cargarProductos();
         } else {
             mostrarToast(`❌ ${resultado.error}`, 'error');
         }
     } catch (error) {
-        mostrarToast(' Error de conexión con el backend', 'error');
+        mostrarToast('❌ Error de conexión con el backend', 'error');
     }
 });
 
 function mostrarToast(mensaje, tipo = 'success') {
+    const toast = document.getElementById('toast');
+    toast.innerText = mensaje;
+    toast.className = `toast show ${tipo}`;
+    setTimeout(() => { toast.className = toast.className.replace('show', ''); }, 2500);
+}
 
-   // Detectar si estamos en la página de historial y cargar los datos
+// Historial de pedidos
 if (document.getElementById('lista-pedidos')) {
     cargarHistorial();
 }
@@ -186,7 +218,6 @@ async function cargarHistorial() {
             const card = document.createElement('div');
             card.className = 'pedido-card';
             
-            // Formatear fecha para que sea legible
             const fecha = new Date(p.fecha).toLocaleString('es-AR', { 
                 day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' 
             });
@@ -205,4 +236,4 @@ async function cargarHistorial() {
         console.error(error);
         container.innerHTML = '<p class="cargando">Error al conectar con el servidor.</p>';
     }
-}        }
+}
