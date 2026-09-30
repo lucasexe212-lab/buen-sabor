@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>El Buen Sabor - Sistema de Pedidos</title>
+    <!-- Links a la carpeta static de Flask -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='Mobile.css') }}">
+</head>
+<body>
+
+    <header>
+    <h1>🍔 El Buen Sabor</h1>
+    <p>Sistema de Gestión de Pedidos</p>
+    <!-- Botón discreto para el dueño -->
+    <a href="/historial" class="btn-historial"> Historial</a>
+</header>
+
+    <main>
+        <section id="menu">
+            <h2>Menú del Día</h2>
+            
+            <div class="filtros">
+                <button class="btn-filtro activo" onclick="filtrar('todos')">Todos</button>
+                <button class="btn-filtro" onclick="filtrar('comidas')">🍔 Comidas</button>
+                <button class="btn-filtro" onclick="filtrar('bebidas')">🥤 Bebidas</button>
+            </div>
+
+            <div id="productos-container" class="grid-productos">
+                <p class="cargando">Cargando productos desde el servidor...</p>
+            </div>
+        </section>
+
+        <section id="carrito">
+            <h2>Pedido Actual</h2>
+            <ul id="lista-carrito">
+                <li class="vacio">No hay productos agregados.</li>
+            </ul>
+            <div class="total-container">
+                <h3>Total: $<span id="total-pedido">0</span></h3>
+            </div>
+            <button id="btn-confirmar" class="btn-accion">✅ Confirmar y Enviar a Cocina</button>
+        </section>
+    </main>
+
+    <footer>
+        <p>&copy; 2026 El Buen Sabor - MVP Mobile-First</p>
+    </footer>
+
+    <div id="toast" class="toast"></div>
+
+    <!-- Link al JS de la carpeta static -->
+    <script src="{{ url_for('static', filename='Mobile.js') }}"></script>
+</body>
+</html>

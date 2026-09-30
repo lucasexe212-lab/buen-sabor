@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Historial - El Buen Sabor</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='Mobile.css') }}">
+</head>
+<body>
+
+    <header class="header-historial">
+        <h1> Historial de Pedidos</h1>
+        <a href="/" class="btn-volver">⬅ Volver al Menú</a>
+    </header>
+
+    <main>
+        <section id="historial-container">
+            <h2>Pedidos Realizados</h2>
+            <div id="lista-pedidos" class="lista-pedidos">
+                <p class="cargando">Cargando historial desde MySQL...</p>
+            </div>
+        </section>
+    </main>
+
+    <script src="{{ url_for('static', filename='Mobile.js') }}"></script>
+</body>
+</html>
