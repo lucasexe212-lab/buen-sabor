@@ -1,5 +1,6 @@
 /**
  * Mobile.js - Frontend conectado a Flask + SQLite + WhatsApp
+ * Sistema El Buen Sabor - Versión Final
  */
 
 let carrito = [];
@@ -7,14 +8,16 @@ let todosLosProductos = [];
 let filtroActual = 'todos';
 
 // ⚠️ CONFIGURAR NÚMERO DEL DUEÑO (con código de país, sin + ni espacios)
-// Ejemplo Argentina: 549 + código de área sin 0 ni 15 + número
-// Ej: 5492611234567 (Mendoza)
+// Argentina: 549 + código de área (sin 0 ni 15) + número
+// Ej: 5492611234567 (Mendoza) | 5491112345678 (CABA)
 const TELEFONO_DUEÑO = '543777635035'; // <-- CAMBIÁ ESTE NÚMERO
 
+// ===== INICIALIZACIÓN =====
 document.addEventListener('DOMContentLoaded', async () => {
     await cargarProductos();
 });
 
+// ===== CARGA DE PRODUCTOS DESDE EL SERVIDOR =====
 async function cargarProductos() {
     try {
         const respuesta = await fetch('/api/productos');
@@ -26,6 +29,7 @@ async function cargarProductos() {
     }
 }
 
+// ===== RENDERIZAR PRODUCTOS EN PANTALLA =====
 function renderizarProductos() {
     const container = document.getElementById('productos-container');
     container.innerHTML = '';
@@ -54,6 +58,7 @@ function renderizarProductos() {
     });
 }
 
+// ===== FILTRAR POR CATEGORÍA =====
 function filtrar(categoria) {
     filtroActual = categoria;
     renderizarProductos();
@@ -65,6 +70,7 @@ function filtrar(categoria) {
     });
 }
 
+// ===== AGREGAR PRODUCTO AL CARRITO =====
 function agregarAlCarrito(productoId) {
     const producto = todosLosProductos.find(p => p.id === productoId);
     const itemEnCarrito = carrito.find(c => c.id === productoId);
@@ -78,19 +84,25 @@ function agregarAlCarrito(productoId) {
     if (itemEnCarrito) {
         itemEnCarrito.cantidad++;
     } else {
-        carrito.push({ id: producto.id, nombre: producto.nombre, precio: producto.precio, cantidad: 1 });
+        carrito.push({ 
+            id: producto.id, 
+            nombre: producto.nombre, 
+            precio: producto.precio, 
+            cantidad: 1 
+        });
     }
 
     mostrarToast(`✅ ${producto.nombre} agregado`, 'success');
     renderizarCarrito();
 }
 
+// ===== CAMBIAR CANTIDAD EN EL CARRITO (+/-) =====
 function cambiarCantidad(index, delta) {
     const item = carrito[index];
     const productoReal = todosLosProductos.find(p => p.id === item.id);
 
     if (delta > 0 && item.cantidad >= productoReal.stock) {
-        mostrarToast(`⚠️ Stock máximo alcanzado`, 'error');
+        mostrarToast(`️ Stock máximo alcanzado`, 'error');
         return;
     }
 
@@ -101,6 +113,7 @@ function cambiarCantidad(index, delta) {
     renderizarCarrito();
 }
 
+// ===== RENDERIZAR CARRITO =====
 function renderizarCarrito() {
     const lista = document.getElementById('lista-carrito');
     lista.innerHTML = '';
@@ -135,16 +148,15 @@ function renderizarCarrito() {
     document.getElementById('total-pedido').innerText = total.toLocaleString('es-AR');
 }
 
-// ===== FUNCIÓN NUEVA: Enviar WhatsApp =====
-function enviarWhatsApp() {
-    const productosTexto = carrito.map(item => 
+// ===== ENVIAR WHATSAPP AL DUEÑO =====
+function enviarWhatsApp(carritoPedido, total) {
+    const productosTexto = carritoPedido.map(item => 
         `${item.cantidad}x ${item.nombre}`
     ).join(', ');
     
-    const total = document.getElementById('total-pedido').innerText;
     const hora = new Date().toLocaleString('es-AR');
     
-    const mensaje = `🍔 *NUEVO PEDIDO - EL BUEN SABOR*%0A%0A` +
+    const mensaje = ` *NUEVO PEDIDO - EL BUEN SABOR*%0A%0A` +
                    `📦 *Productos:*%0A${productosTexto}%0A%0A` +
                    `💰 *Total:* $${total}%0A%0A` +
                    `⏰ *Hora:* ${hora}`;
@@ -152,7 +164,7 @@ function enviarWhatsApp() {
     window.open(`https://wa.me/${TELEFONO_DUEÑO}?text=${mensaje}`, '_blank');
 }
 
-// Confirmar pedido con WhatsApp
+// ===== CONFIRMAR PEDIDO =====
 document.getElementById('btn-confirmar').addEventListener('click', async () => {
     if (carrito.length === 0) {
         mostrarToast("⚠️ El pedido está vacío", 'error');
@@ -173,11 +185,15 @@ document.getElementById('btn-confirmar').addEventListener('click', async () => {
         if (resultado.success) {
             mostrarToast(`✅ Pedido confirmado: $${total}`, 'success');
             
-            // Abrir WhatsApp después de 1 segundo
+            // ✅ Guardar COPIA del carrito ANTES de vaciarlo
+            const carritoParaWhatsApp = [...carrito];
+            
+            // Abrir WhatsApp después de 1 segundo con los datos correctos
             setTimeout(() => {
-                enviarWhatsApp();
+                enviarWhatsApp(carritoParaWhatsApp, total);
             }, 1000);
             
+            // Recién ahora vaciamos el carrito
             carrito = [];
             renderizarCarrito();
             await cargarProductos();
@@ -189,14 +205,17 @@ document.getElementById('btn-confirmar').addEventListener('click', async () => {
     }
 });
 
+// ===== NOTIFICACIÓN TOAST =====
 function mostrarToast(mensaje, tipo = 'success') {
     const toast = document.getElementById('toast');
     toast.innerText = mensaje;
     toast.className = `toast show ${tipo}`;
-    setTimeout(() => { toast.className = toast.className.replace('show', ''); }, 2500);
+    setTimeout(() => { 
+        toast.className = toast.className.replace('show', ''); 
+    }, 2500);
 }
 
-// Historial de pedidos
+// ===== HISTORIAL DE PEDIDOS (solo en la página historial.html) =====
 if (document.getElementById('lista-pedidos')) {
     cargarHistorial();
 }
@@ -219,7 +238,10 @@ async function cargarHistorial() {
             card.className = 'pedido-card';
             
             const fecha = new Date(p.fecha).toLocaleString('es-AR', { 
-                day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' 
+                day: '2-digit', 
+                month: '2-digit', 
+                hour: '2-digit', 
+                minute: '2-digit' 
             });
 
             card.innerHTML = `
