@@ -259,3 +259,119 @@ async function cargarHistorial() {
         container.innerHTML = '<p class="cargando">Error al conectar con el servidor.</p>';
     }
 }
+
+// ===== FUNCIONES DE ADMINISTRACIÓN (solo en admin.html) =====
+
+if (document.getElementById('form-producto')) {
+    cargarProductosAdmin();
+    
+    // Manejar formulario de agregar producto
+    document.getElementById('form-producto').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const nombre = document.getElementById('nombre').value;
+        const precio = document.getElementById('precio').value;
+        const stock = document.getElementById('stock').value;
+        const categoria = document.getElementById('categoria').value;
+
+        try {
+            const respuesta = await fetch('/api/admin/productos', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ nombre, precio, stock, categoria })
+            });
+
+            const resultado = await respuesta.json();
+
+            if (resultado.success) {
+                mostrarToast('✅ Producto agregado', 'success');
+                document.getElementById('form-producto').reset();
+                cargarProductosAdmin();
+            } else {
+                mostrarToast(`❌ ${resultado.error}`, 'error');
+            }
+        } catch (error) {
+            mostrarToast('❌ Error al agregar producto', 'error');
+        }
+    });
+}
+
+async function cargarProductosAdmin() {
+    const container = document.getElementById('productos-admin');
+    
+    try {
+        const respuesta = await fetch('/api/admin/productos');
+        const productos = await respuesta.json();
+        container.innerHTML = '';
+
+        if (productos.length === 0) {
+            container.innerHTML = '<p class="cargando">No hay productos registrados.</p>';
+            return;
+        }
+
+        productos.forEach(p => {
+            const card = document.createElement('div');
+            card.className = 'producto-admin-card';
+            card.innerHTML = `
+                <div class="producto-admin-info">
+                    <span class="producto-admin-nombre">${p.nombre}</span>
+                    <span class="producto-admin-precio">$${p.precio}</span>
+                    <span class="producto-admin-categoria">${p.categoria}</span>
+                </div>
+                <div class="producto-admin-stock">
+                    <label>Stock:</label>
+                    <input type="number" value="${p.stock}" min="0" 
+                           onchange="actualizarStock(${p.id}, this.value)">
+                </div>
+                <button class="btn-eliminar" onclick="eliminarProducto(${p.id})">🗑️ Eliminar</button>
+            `;
+            container.appendChild(card);
+        });
+    } catch (error) {
+        console.error(error);
+        container.innerHTML = '<p class="cargando">Error al cargar productos.</p>';
+    }
+}
+
+async function actualizarStock(productoId, nuevoStock) {
+    try {
+        const respuesta = await fetch(`/api/admin/productos/${productoId}/stock`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ stock: nuevoStock })
+        });
+
+        const resultado = await respuesta.json();
+
+        if (resultado.success) {
+            mostrarToast('✅ Stock actualizado', 'success');
+        } else {
+            mostrarToast(`❌ ${resultado.error}`, 'error');
+        }
+    } catch (error) {
+        mostrarToast('❌ Error al actualizar stock', 'error');
+    }
+}
+
+async function eliminarProducto(productoId) {
+    if (!confirm('¿Estás seguro de eliminar este producto?')) {
+        return;
+    }
+
+    try {
+        const respuesta = await fetch(`/api/admin/productos/${productoId}`, {
+            method: 'DELETE'
+        });
+
+        const resultado = await respuesta.json();
+
+        if (resultado.success) {
+            mostrarToast('✅ Producto eliminado', 'success');
+            cargarProductosAdmin();
+        } else {
+            mostrarToast(`❌ ${resultado.error}`, 'error');
+        }
+    } catch (error) {
+        mostrarToast('❌ Error al eliminar producto', 'error');
+    }
+}

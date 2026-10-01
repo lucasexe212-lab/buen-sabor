@@ -93,6 +93,73 @@ def get_historial():
     pedidos = conn.execute('SELECT * FROM pedidos ORDER BY id DESC').fetchall()
     conn.close()
     return jsonify([dict(ix) for ix in pedidos])
+# ===== RUTAS DE ADMINISTRACIÓN =====
+
+@app.route('/admin')
+def admin():
+    return render_template('admin.html')
+
+# API: Obtener todos los productos (para admin)
+@app.route('/api/admin/productos', methods=['GET'])
+def admin_get_productos():
+    conn = get_db_connection()
+    productos = conn.execute('SELECT * FROM productos ORDER BY id').fetchall()
+    conn.close()
+    return jsonify([dict(ix) for ix in productos])
+
+# API: Agregar nuevo producto
+@app.route('/api/admin/productos', methods=['POST'])
+def admin_agregar_producto():
+    data = request.json
+    nombre = data['nombre']
+    precio = float(data['precio'])
+    stock = int(data['stock'])
+    categoria = data['categoria']
+
+    conn = get_db_connection()
+    try:
+        conn.execute(
+            'INSERT INTO productos (nombre, precio, stock, categoria) VALUES (?, ?, ?, ?)',
+            (nombre, precio, stock, categoria)
+        )
+        conn.commit()
+        return jsonify({'success': True, 'message': 'Producto agregado'})
+    except Exception as e:
+        conn.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
+    finally:
+        conn.close()
+
+# API: Eliminar producto
+@app.route('/api/admin/productos/<int:producto_id>', methods=['DELETE'])
+def admin_eliminar_producto(producto_id):
+    conn = get_db_connection()
+    try:
+        conn.execute('DELETE FROM productos WHERE id = ?', (producto_id,))
+        conn.commit()
+        return jsonify({'success': True, 'message': 'Producto eliminado'})
+    except Exception as e:
+        conn.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
+    finally:
+        conn.close()
+
+# API: Actualizar stock de producto
+@app.route('/api/admin/productos/<int:producto_id>/stock', methods=['PUT'])
+def admin_actualizar_stock(producto_id):
+    data = request.json
+    nuevo_stock = int(data['stock'])
+
+    conn = get_db_connection()
+    try:
+        conn.execute('UPDATE productos SET stock = ? WHERE id = ?', (nuevo_stock, producto_id))
+        conn.commit()
+        return jsonify({'success': True, 'message': 'Stock actualizado'})
+    except Exception as e:
+        conn.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
+    finally:
+        conn.close()
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))

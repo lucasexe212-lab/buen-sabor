@@ -125,3 +125,131 @@ footer { text-align: center; font-size: 0.8rem; color: #6c757d; margin-top: 30px
     font-size: 1.2rem;
     color: var(--color-exito);
 }
+/* ===== ESTILOS DEL PANEL DE ADMINISTRACIÓN ===== */
+
+.header-botones {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    margin-top: 10px;
+}
+
+.btn-admin, .btn-historial {
+    background: rgba(255, 255, 255, 0.25);
+    color: white;
+    text-decoration: none;
+    padding: 8px 15px;
+    border-radius: 20px;
+    font-size: 0.9rem;
+    font-weight: bold;
+    backdrop-filter: blur(4px);
+    transition: background 0.2s;
+}
+
+.btn-admin:hover, .btn-historial:hover {
+    background: rgba(255, 255, 255, 0.4);
+}
+
+.header-admin {
+    position: relative;
+    padding-bottom: 30px;
+}
+
+.btn-volver {
+    display: inline-block;
+    margin-top: 10px;
+    color: white;
+    text-decoration: none;
+    font-weight: bold;
+    font-size: 0.9rem;
+    background: rgba(0,0,0,0.1);
+    padding: 5px 15px;
+    border-radius: 15px;
+}
+
+/* Formulario de admin */
+.form-admin {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.form-admin input, .form-admin select {
+    padding: 12px;
+    border: 2px solid var(--color-borde);
+    border-radius: 8px;
+    font-size: 1rem;
+    font-family: inherit;
+}
+
+.form-admin input:focus, .form-admin select:focus {
+    outline: none;
+    border-color: var(--color-primario);
+}
+
+/* Lista de productos en admin */
+.producto-admin-card {
+    background: white;
+    border-radius: 12px;
+    padding: 15px;
+    margin-bottom: 15px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    border-left: 5px solid var(--color-primario);
+}
+
+.producto-admin-info {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    margin-bottom: 10px;
+}
+
+.producto-admin-nombre {
+    font-weight: bold;
+    font-size: 1.1rem;
+}
+
+.producto-admin-precio {
+    color: var(--color-primario);
+    font-weight: bold;
+}
+
+.producto-admin-categoria {
+    font-size: 0.85rem;
+    color: #666;
+    text-transform: capitalize;
+}
+
+.producto-admin-stock {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.producto-admin-stock label {
+    font-weight: bold;
+}
+
+.producto-admin-stock input {
+    width: 80px;
+    padding: 8px;
+    border: 2px solid var(--color-borde);
+    border-radius: 6px;
+    font-size: 1rem;
+}
+
+.btn-eliminar {
+    background: #dc3545;
+    color: white;
+    border: none;
+    padding: 8px 15px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: background 0.2s;
+}
+
+.btn-eliminar:hover {
+    background: #c82333;
+}
