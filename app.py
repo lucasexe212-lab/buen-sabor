@@ -1,31 +1,15 @@
 from flask import Flask, render_template, jsonify, request
 import sqlite3
 import os
-import hashlib
 import secrets
-# ===== CONFIGURACIÓN DE SEGURIDAD =====
-# Contraseña del admin (cambiá esta por la que quieras)
-ADMIN_PASSWORD = 'admin123'  # <-- CAMBIÁ ESTA CONTRASEÑA
 
-def verificar_password(password):
-    """Verifica si la contraseña es correcta"""
-    return password == ADMIN_PASSWORD
-
-def generar_token():
-    """Genera un token aleatorio para la sesión"""
-    return secrets.token_hex(32)
-
-def verificar_token(token):
-    """Verifica si el token es válido (simplificado para el TP)"""
-    # En producción usarías JWT o sesiones reales
-    return token is not None and len(token) > 10
-
-# ⚠️ IMPORTANTE: Definir 'app' PRIMERO, antes de usarlo
 app = Flask(__name__)
 
-# Configuración de SQLite
+# ===== CONFIGURACIÓN =====
 DATABASE = 'buen_sabor.db'
+ADMIN_PASSWORD = 'admin123'
 
+# ===== FUNCIONES DE BASE DE DATOS =====
 def get_db_connection():
     conn = sqlite3.connect(DATABASE)
     conn.row_factory = sqlite3.Row
@@ -63,6 +47,21 @@ def init_db():
 
 init_db()
 
+# ===== FUNCIONES DE AUTENTICACIÓN =====
+def verificar_password(password):
+    return password == ADMIN_PASSWORD
+
+def generar_token():
+    return secrets.token_hex(32)
+
+def requiere_auth():
+    auth_header = request.headers.get('Authorization', '')
+    if not auth_header.startswith('Bearer '):
+        return False
+    token = auth_header.split(' ')[1]
+    return len(token) > 10
+
+# ===== RUTAS PRINCIPALES =====
 @app.route('/')
 def index():
     return render_template('Mobile.html')
@@ -71,6 +70,15 @@ def index():
 def historial():
     return render_template('historial.html')
 
+@app.route('/admin/login')
+def admin_login():
+    return render_template('admin_login.html')
+
+@app.route('/admin')
+def admin():
+    return render_template('admin.html')
+
+# ===== APIs PÚBLICAS =====
 @app.route('/api/productos', methods=['GET'])
 def get_productos():
     conn = get_db_connection()
@@ -111,23 +119,34 @@ def get_historial():
     pedidos = conn.execute('SELECT * FROM pedidos ORDER BY id DESC').fetchall()
     conn.close()
     return jsonify([dict(ix) for ix in pedidos])
-# ===== RUTAS DE ADMINISTRACIÓN =====
 
-@app.route('/admin')
-def admin():
-    return render_template('admin.html')
+# ===== APIs DE ADMINISTRACIÓN =====
+@app.route('/api/admin/login', methods=['POST'])
+def api_admin_login():
+    data = request.json
+    password = data.get('password', '')
+    
+    if verificar_password(password):
+        token = generar_token()
+        return jsonify({'success': True, 'token': token, 'message': 'Login exitoso'})
+    else:
+        return jsonify({'success': False, 'error': 'Contraseña incorrecta'}), 401
 
-# API: Obtener todos los productos (para admin)
 @app.route('/api/admin/productos', methods=['GET'])
 def admin_get_productos():
+    if not requiere_auth():
+        return jsonify({'error': 'No autorizado'}), 401
+    
     conn = get_db_connection()
     productos = conn.execute('SELECT * FROM productos ORDER BY id').fetchall()
     conn.close()
     return jsonify([dict(ix) for ix in productos])
 
-# API: Agregar nuevo producto
 @app.route('/api/admin/productos', methods=['POST'])
 def admin_agregar_producto():
+    if not requiere_auth():
+        return jsonify({'error': 'No autorizado'}), 401
+    
     data = request.json
     nombre = data['nombre']
     precio = float(data['precio'])
@@ -148,9 +167,11 @@ def admin_agregar_producto():
     finally:
         conn.close()
 
-# API: Eliminar producto
 @app.route('/api/admin/productos/<int:producto_id>', methods=['DELETE'])
 def admin_eliminar_producto(producto_id):
+    if not requiere_auth():
+        return jsonify({'error': 'No autorizado'}), 401
+    
     conn = get_db_connection()
     try:
         conn.execute('DELETE FROM productos WHERE id = ?', (producto_id,))
@@ -162,9 +183,11 @@ def admin_eliminar_producto(producto_id):
     finally:
         conn.close()
 
-# API: Actualizar stock de producto
 @app.route('/api/admin/productos/<int:producto_id>/stock', methods=['PUT'])
 def admin_actualizar_stock(producto_id):
+    if not requiere_auth():
+        return jsonify({'error': 'No autorizado'}), 401
+    
     data = request.json
     nuevo_stock = int(data['stock'])
 
