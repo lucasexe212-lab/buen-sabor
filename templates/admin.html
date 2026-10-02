@@ -8,9 +8,16 @@
 </head>
 <body>
 
-    <header class="header-admin">
-        <h1>⚙️ Panel de Administración</h1>
-        <a href="/" class="btn-volver">⬅ Volver al Menú</a>
+    <header>
+        <div class="header-contenido">
+            <div class="header-titulo">
+                <h1>️ Panel de Administración</h1>
+            </div>
+            <div class="header-botones">
+                <a href="/" class="btn-header">⬅ Menú</a>
+                <button onclick="cerrarSesion()" class="btn-header">🚪 Salir</button>
+            </div>
+        </div>
     </header>
 
     <main>
@@ -24,7 +31,7 @@
                 <select id="categoria" required>
                     <option value="">Seleccionar categoría</option>
                     <option value="comidas">🍔 Comidas</option>
-                    <option value="bebidas"> Bebidas</option>
+                    <option value="bebidas">🥤 Bebidas</option>
                 </select>
                 <button type="submit" class="btn-accion">➕ Agregar Producto</button>
             </form>
@@ -41,6 +48,153 @@
 
     <div id="toast" class="toast"></div>
 
-    <script src="{{ url_for('static', filename='Mobile.js') }}"></script>
+    <script>
+        // Verificar autenticación al cargar
+        const token = localStorage.getItem('admin_token');
+        if (!token) {
+            window.location.href = '/admin/login';
+        }
+
+        // Cargar productos al iniciar
+        cargarProductosAdmin();
+
+        // Manejar formulario de agregar producto
+        document.getElementById('form-producto').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const nombre = document.getElementById('nombre').value;
+            const precio = document.getElementById('precio').value;
+            const stock = document.getElementById('stock').value;
+            const categoria = document.getElementById('categoria').value;
+
+            try {
+                const respuesta = await fetch('/api/admin/productos', {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ nombre, precio, stock, categoria })
+                });
+
+                const resultado = await respuesta.json();
+
+                if (resultado.success) {
+                    mostrarToast('✅ Producto agregado', 'success');
+                    document.getElementById('form-producto').reset();
+                    cargarProductosAdmin();
+                } else {
+                    mostrarToast(`❌ ${resultado.error}`, 'error');
+                }
+            } catch (error) {
+                mostrarToast('❌ Error al agregar producto', 'error');
+            }
+        });
+
+        async function cargarProductosAdmin() {
+            const container = document.getElementById('productos-admin');
+            
+            try {
+                const respuesta = await fetch('/api/admin/productos', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                if (respuesta.status === 401) {
+                    localStorage.removeItem('admin_token');
+                    window.location.href = '/admin/login';
+                    return;
+                }
+                
+                const productos = await respuesta.json();
+                container.innerHTML = '';
+
+                if (productos.length === 0) {
+                    container.innerHTML = '<p class="cargando">No hay productos registrados.</p>';
+                    return;
+                }
+
+                productos.forEach(p => {
+                    const card = document.createElement('div');
+                    card.className = 'producto-admin-card';
+                    card.innerHTML = `
+                        <div class="producto-admin-info">
+                            <span class="producto-admin-nombre">${p.nombre}</span>
+                            <span class="producto-admin-precio">$${p.precio}</span>
+                            <span class="producto-admin-categoria">${p.categoria}</span>
+                        </div>
+                        <div class="producto-admin-stock">
+                            <label>Stock:</label>
+                            <input type="number" value="${p.stock}" min="0" 
+                                   onchange="actualizarStock(${p.id}, this.value)">
+                        </div>
+                        <button class="btn-eliminar" onclick="eliminarProducto(${p.id})">🗑️ Eliminar</button>
+                    `;
+                    container.appendChild(card);
+                });
+            } catch (error) {
+                console.error(error);
+                container.innerHTML = '<p class="cargando">Error al cargar productos.</p>';
+            }
+        }
+
+        async function actualizarStock(productoId, nuevoStock) {
+            try {
+                const respuesta = await fetch(`/api/admin/productos/${productoId}/stock`, {
+                    method: 'PUT',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ stock: nuevoStock })
+                });
+
+                const resultado = await respuesta.json();
+
+                if (resultado.success) {
+                    mostrarToast('✅ Stock actualizado', 'success');
+                } else {
+                    mostrarToast(`❌ ${resultado.error}`, 'error');
+                }
+            } catch (error) {
+                mostrarToast('❌ Error al actualizar stock', 'error');
+            }
+        }
+
+        async function eliminarProducto(productoId) {
+            if (!confirm('¿Estás seguro de eliminar este producto?')) {
+                return;
+            }
+
+            try {
+                const respuesta = await fetch(`/api/admin/productos/${productoId}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                const resultado = await respuesta.json();
+
+                if (resultado.success) {
+                    mostrarToast('✅ Producto eliminado', 'success');
+                    cargarProductosAdmin();
+                } else {
+                    mostrarToast(`❌ ${resultado.error}`, 'error');
+                }
+            } catch (error) {
+                mostrarToast('❌ Error al eliminar producto', 'error');
+            }
+        }
+
+        function cerrarSesion() {
+            localStorage.removeItem('admin_token');
+            window.location.href = '/';
+        }
+
+        function mostrarToast(mensaje, tipo = 'success') {
+            const toast = document.getElementById('toast');
+            toast.innerText = mensaje;
+            toast.className = `toast show ${tipo}`;
+            setTimeout(() => { toast.className = toast.className.replace('show', ''); }, 2500);
+        }
+    </script>
 </body>
 </html>

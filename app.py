@@ -1,6 +1,24 @@
 from flask import Flask, render_template, jsonify, request
 import sqlite3
 import os
+import hashlib
+import secrets
+# ===== CONFIGURACIÓN DE SEGURIDAD =====
+# Contraseña del admin (cambiá esta por la que quieras)
+ADMIN_PASSWORD = 'admin123'  # <-- CAMBIÁ ESTA CONTRASEÑA
+
+def verificar_password(password):
+    """Verifica si la contraseña es correcta"""
+    return password == ADMIN_PASSWORD
+
+def generar_token():
+    """Genera un token aleatorio para la sesión"""
+    return secrets.token_hex(32)
+
+def verificar_token(token):
+    """Verifica si el token es válido (simplificado para el TP)"""
+    # En producción usarías JWT o sesiones reales
+    return token is not None and len(token) > 10
 
 # ⚠️ IMPORTANTE: Definir 'app' PRIMERO, antes de usarlo
 app = Flask(__name__)

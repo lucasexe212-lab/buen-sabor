@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login Admin - El Buen Sabor</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='Mobile.css') }}">
+</head>
+<body>
+
+    <header>
+        <div class="header-contenido">
+            <div class="header-titulo">
+                <h1> El Buen Sabor</h1>
+                <p>Panel de Administración</p>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <section class="login-container">
+            <h2>🔐 Acceso Restringido</h2>
+            <p>Solo personal autorizado</p>
+            
+            <form id="form-login" class="form-admin">
+                <input type="password" id="password" placeholder="Contraseña de administrador" required>
+                <button type="submit" class="btn-accion">Ingresar</button>
+            </form>
+            
+            <a href="/" class="btn-volver-menu"> Volver al Menú</a>
+        </section>
+    </main>
+
+    <div id="toast" class="toast"></div>
+
+    <script>
+        document.getElementById('form-login').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const password = document.getElementById('password').value;
+
+            try {
+                const respuesta = await fetch('/api/admin/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ password })
+                });
+
+                const resultado = await respuesta.json();
+
+                if (resultado.success) {
+                    // Guardar token en localStorage
+                    localStorage.setItem('admin_token', resultado.token);
+                    window.location.href = '/admin';
+                } else {
+                    mostrarToast('❌ Contraseña incorrecta', 'error');
+                }
+            } catch (error) {
+                mostrarToast('❌ Error de conexión', 'error');
+            }
+        });
+
+        function mostrarToast(mensaje, tipo = 'success') {
+            const toast = document.getElementById('toast');
+            toast.innerText = mensaje;
+            toast.className = `toast show ${tipo}`;
+            setTimeout(() => { toast.className = toast.className.replace('show', ''); }, 2500);
+        }
+    </script>
+</body>
+</html>
